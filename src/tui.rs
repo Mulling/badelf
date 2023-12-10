@@ -27,7 +27,7 @@ struct Tui {
     y: u16,
     cx: u16,
     cy: u16,
-    line: u16,
+    line: usize,
 }
 
 impl Default for Tui {
@@ -68,13 +68,53 @@ impl Tui {
         Ok(tui)
     }
 
+    fn move_cursor(&mut self, x: u16, y: u16) -> Result<(), Error> {
+        self.stdout.execute(MoveTo(x, y))?;
+        Ok(())
+    }
+
+    fn scroll_down(&mut self) -> Result<(), Error> {
+        self.line = self.data.len().min(self.line + 1);
+
+        if self.cy == self.y - 1 {
+            let start: usize = self.line - self.cy as usize;
+            let end: usize = self.data.len().min(self.line);
+            self.draw(start, end)?;
+        } else {
+            self.cy += 1;
+        }
+        Ok(())
+    }
+
+    fn scroll_up(&mut self) -> Result<(), Error> {
+        self.line = 0isize.max(self.line as isize - 1) as usize;
+
+        if self.cy == 0 {
+            let end: usize = self.line + self.y as usize;
+
+            self.draw(self.line, end)?;
+        } else {
+            self.cy -= 1;
+        }
+
+        Ok(())
+    }
+
+    fn draw(&mut self, start: usize, end: usize) -> Result<(), Error> {
+        self.stdout.execute(Clear(terminal::ClearType::All))?;
+
+        for (i, l) in (start..end).enumerate() {
+            self.stdout.execute(MoveTo(0, i as u16))?;
+            self.stdout.execute(Print(&self.data[l]))?;
+        }
+        Ok(())
+    }
+
     fn run(&mut self) -> Result<(), Error> {
         let mut quit = false;
 
-        for (i, l) in self.data.iter().take(self.y.into()).enumerate() {
-            self.stdout.execute(MoveTo(0, i as u16))?;
-            self.stdout.execute(Print(l))?;
-        }
+        self.draw(0, self.y.into())?;
+        self.move_cursor(0, 0)?;
 
         while !quit {
             match read()? {
@@ -82,45 +122,8 @@ impl Tui {
                     if event.kind == KeyEventKind::Press {
                         if let KeyCode::Char(c) = event.code {
                             match c {
-                                'j' => {
-                                    if self.cy == self.y - 1 {
-                                        self.line += 1;
-                                        let start: usize = (self.line - self.cy).into();
-
-                                        self.stdout.execute(Clear(terminal::ClearType::All))?;
-                                        for (i, l) in
-                                            self.data[start..self.line.into()].iter().enumerate()
-                                        {
-                                            self.stdout.execute(MoveTo(0, i as u16))?;
-                                            self.stdout.execute(Print(l))?;
-                                        }
-                                    } else {
-                                        self.line += 1;
-                                        self.cy += 1;
-                                    }
-                                }
-                                'k' => {
-                                    if self.cy == 0 {
-                                        if self.line != 0 {
-                                            self.line -= 1;
-
-                                            let end: usize = (self.line + self.y).into();
-                                            self.stdout.execute(Clear(terminal::ClearType::All))?;
-
-                                            for (i, l) in
-                                                self.data[self.line.into()..end].iter().enumerate()
-                                            {
-                                                self.stdout.execute(MoveTo(0, i as u16))?;
-                                                self.stdout.execute(Print(l))?;
-                                            }
-                                        }
-                                    } else {
-                                        if self.line != 0 {
-                                            self.line -= 1;
-                                        }
-                                        self.cy -= 1;
-                                    }
-                                }
+                                'j' => self.scroll_down()?,
+                                'k' => self.scroll_up()?,
                                 'q' => quit = true,
                                 _ => (),
                             }
