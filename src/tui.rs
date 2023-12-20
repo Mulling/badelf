@@ -20,6 +20,7 @@ struct Args {
     file: String,
 }
 
+#[derive(Debug)]
 struct Tui {
     stdout: Stdout,
     data: Vec<String>,
@@ -28,20 +29,6 @@ struct Tui {
     cx: u16,
     cy: u16,
     line: usize,
-}
-
-impl Default for Tui {
-    fn default() -> Self {
-        Tui {
-            stdout: stdout(),
-            data: vec![],
-            x: 0,
-            y: 0,
-            cx: 0,
-            cy: 0,
-            line: 0,
-        }
-    }
 }
 
 impl Tui {
