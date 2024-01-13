@@ -1,5 +1,1 @@
-mod elf;
-
-pub fn load() -> String {
-    elf::load()
-}
+pub mod elf;

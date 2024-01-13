@@ -74,7 +74,7 @@ impl Tui {
     }
 
     fn scroll_up(&mut self) -> Result<(), Error> {
-        self.line = 0isize.max(self.line as isize - 1) as usize;
+        self.line = self.line.saturating_sub(1);
 
         if self.cy == 0 {
             let end: usize = self.line + self.y as usize;
