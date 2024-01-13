@@ -1,14 +1,12 @@
 use std::error;
 use std::fmt::Display;
 use std::fs;
-use std::mem;
 use std::path::PathBuf;
 
 pub fn load(file: PathBuf) -> Result<Vec<u8>, Box<dyn error::Error>> {
     let file = fs::read(file)?;
 
-    let ident: &[u8; 0x10] = file[..mem::size_of::<Ident>()].try_into()?;
-    let ident: Ident = ident.into();
+    let ident: Ident = <&[u8] as TryInto<&[u8; 0x10]>>::try_into(&file[..0x10])?.into();
 
     println!("ident = {ident}");
 
@@ -30,17 +28,17 @@ pub fn load(file: PathBuf) -> Result<Vec<u8>, Box<dyn error::Error>> {
 }
 
 #[derive(Debug)]
-struct Ident {
-    ident: [u8; 0x10],
+struct Ident<'a> {
+    ident: &'a [u8; 0x10],
 }
 
-impl From<&[u8; 0x10]> for Ident {
-    fn from(ident: &[u8; 16]) -> Self {
-        Self { ident: *ident }
+impl<'a> From<&'a [u8; 0x10]> for Ident<'a> {
+    fn from(ident: &'a [u8; 16]) -> Self {
+        Self { ident }
     }
 }
 
-impl Display for Ident {
+impl Display for Ident<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -90,7 +88,7 @@ impl Display for Ident {
     }
 }
 
-impl Ident {
+impl Ident<'_> {
     fn class(&self) -> u8 {
         match self.ident[0x04] {
             0x01 => 0x34,
