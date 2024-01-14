@@ -1,4 +1,6 @@
-use badelf::{self, elf::load};
+mod elf;
+
+use crate::elf::load;
 use clap::Parser;
 use std::error;
 
