@@ -13,9 +13,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn error::Error>> {
     let args = Args::parse();
 
-    let elf = load(args.file.into())?;
-
-    println!("{}", elf.len());
+    let _ = load(args.file.into())?;
 
     Ok(())
 }
